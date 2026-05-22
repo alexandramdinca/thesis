@@ -1,0 +1,110 @@
+﻿@page "/"
+@inject NavigationManager Navigation
+<PageTitle>moors</PageTitle>
+<div class="home-page">
+    <div class="poster-background" aria-hidden="true">
+        @for (var columnIndex = 0; columnIndex < PosterColumns.Count; columnIndex++)
+        {
+            var column = PosterColumns[columnIndex];
+
+            <div class="poster-column poster-column-@(columnIndex + 1)">
+                <div class="poster-track">
+                    <div class="poster-set">
+                        @foreach (var poster in column)
+                        {
+                            <div class="poster-card">
+                                <img class="poster-image" src="@poster" alt="" />
+                            </div>
+                        }
+                    </div>
+
+                    <div class="poster-set" aria-hidden="true">
+                        @foreach (var poster in column)
+                        {
+                            <div class="poster-card">
+                                <img class="poster-image" src="@poster" alt="" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="poster-scrim" aria-hidden="true"></div>
+    <div class="home-content">
+        <header class="home-header">
+            <div class="header-left">
+                <img class="cat-logo" src="/images/top-cat-white.png" alt="moors logo" />
+            </div>
+
+            <div class="header-center">
+                <div class="brand-name">moors</div>
+            </div>
+
+            <div class="header-right">
+                <button type="button" class="auth-btn">Sign up</button>
+                <button type="button" class="auth-btn">Log in</button>
+            </div>
+        </header>
+
+        <main class="hero-section">
+            <div class="hero-title-wrap">
+                <div class="hero-title-main">
+                    Make your love
+                    <br />
+                    for movies
+                </div>
+
+                <div class="hero-title-grow">
+                    grow
+                </div>
+            </div>
+
+            <form class="hero-search" @onsubmit="GoToSearch" @onsubmit:preventDefault>
+                <button type="submit" class="search-icon-btn" aria-label="Search">
+                    <svg viewBox="0 0 24 24" class="search-icon" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+                        <path d="M16 16L21 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+
+                <input class="search-input"
+                       type="text"
+                       placeholder="Search for a movie"
+                       @bind="searchText"
+                       @bind:event="oninput" />
+            </form>
+        </main>
+
+        <footer class="home-footer">
+            <p class="home-footer-text">
+                <span class="footer-brand">M.O.O.R.S.</span> - Movie Organization and Recommendation Service
+            </p>
+        </footer>
+    </div>
+</div>
+
+@code {
+    private string searchText = string.Empty;
+
+    private void GoToSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            Navigation.NavigateTo("/search");
+            return;
+        }
+
+        Navigation.NavigateTo($"/search?query={Uri.EscapeDataString(searchText)}");
+    }
+
+    private readonly List<List<string>> PosterColumns = new()
+    {
+        new() { "/images/posters/american-psycho.jpg", "/images/posters/babylon.jpg", "/images/posters/black-swan.jpg", "/images/posters/clueless.jpg", "/images/posters/die-hard.jpg" },
+        new() { "/images/posters/eternal-sunshine.jpg", "/images/posters/ex-machina.jpg", "/images/posters/fight-club.jpg", "/images/posters/girl-interrupted.jpg", "/images/posters/gone-girl.jpg" },
+        new() { "/images/posters/how-to-lose-a-guy-in-10-days.jpg", "/images/posters/interstellar.jpg", "/images/posters/kill-bill.jpg", "/images/posters/la-la-land.jpg", "/images/posters/legally-blonde.jpg" },
+        new() { "/images/posters/men-in-black.jpg", "/images/posters/once-upon-a-time-in-hollywood.jpg", "/images/posters/pearl.jpg", "/images/posters/poor-things.jpg", "/images/posters/scarface.jpg" },
+        new() { "/images/posters/taxi-driver.jpg", "/images/posters/the-godfather.jpg", "/images/posters/the-hangover.jpg", "/images/posters/the-matrix.jpg", "/images/posters/the-sixth-sense.jpg" },
+        new() { "/images/posters/the-social-network.jpg", "/images/posters/the-usual-suspects.jpg", "/images/posters/the-wolf-of-wallstreet.jpg", "/images/posters/uptown-girls.jpg", "/images/posters/whiplash.jpg" }
+    };
+}

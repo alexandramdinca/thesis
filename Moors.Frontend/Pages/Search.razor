@@ -1,0 +1,156 @@
+﻿@page "/search"
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+<PageTitle>Search | moors</PageTitle>
+
+<div class="search-page">
+    <header class="search-header">
+        <div class="header-left">
+            <a href="/" class="logo-link" aria-label="Go to homepage">
+                <img class="cat-logo" src="/images/top-cat-white.png" alt="moors logo" />
+            </a>
+        </div>
+
+        <div class="header-center">
+            <a href="/" class="brand-link">
+                <div class="brand-name">moors</div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <button type="button" class="auth-btn">Sign up</button>
+            <button type="button" class="auth-btn">Log in</button>
+        </div>
+    </header>
+
+    <main class="search-main">
+        <div class="search-top">
+            <form class="hero-search" @onsubmit="SubmitSearch" @onsubmit:preventDefault>
+                <button type="submit" class="search-icon-btn" aria-label="Search">
+                    <svg viewBox="0 0 24 24" class="search-icon" aria-hidden="true">
+                        <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+                        <path d="M16 16L21 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+
+                <input class="search-input"
+                       type="text"
+                       placeholder="Search for a movie"
+                       @bind="searchText"
+                       @bind:event="oninput" />
+            </form>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="state-text">Searching...</div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="state-text">@errorMessage</div>
+        }
+        else if (hasSearched && movies.Count == 0)
+        {
+            <div class="state-text">No movies found.</div>
+        }
+        else if (movies.Count > 0)
+        {
+            <div class="results-grid">
+                @foreach (var movie in movies)
+                {
+                    <a class="movie-card-link" href="@($"/movie/{movie.Id}")">
+                        <article class="movie-card">
+                            @if (!string.IsNullOrWhiteSpace(movie.PosterUrl))
+                            {
+                                <img class="movie-poster" src="@movie.PosterUrl" alt="@movie.Title poster" />
+                            }
+                            else
+                            {
+                                <img class="movie-poster" src="/images/posters/1-no-poster.jpg" alt="No poster available" />
+                            }
+
+                            <div class="movie-info">
+                                <h2 class="movie-title">@movie.Title</h2>
+                                <div class="movie-meta">
+                                    @if (!string.IsNullOrWhiteSpace(movie.Genre))
+                                    {
+                                        <span>@movie.Genre</span>
+                                    }
+                                </div>
+                            </div>
+                        </article>
+                    </a>
+                }
+            </div>
+        }
+    </main>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "query")]
+    public string? QueryFromUrl { get; set; }
+
+    private string searchText = string.Empty;
+    private bool isLoading;
+    private bool hasSearched;
+    private string? errorMessage;
+    private List<MovieItem> movies = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        searchText = QueryFromUrl ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            await SearchMoviesAsync(searchText);
+        }
+    }
+
+    private void SubmitSearch()
+    {
+        var trimmed = searchText?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            movies.Clear();
+            hasSearched = false;
+            errorMessage = null;
+            Navigation.NavigateTo("/search");
+            return;
+        }
+
+        Navigation.NavigateTo($"/search?query={Uri.EscapeDataString(trimmed)}");
+    }
+
+    private async Task SearchMoviesAsync(string query)
+    {
+        isLoading = true;
+        hasSearched = true;
+        errorMessage = null;
+
+        try
+        {
+            var encodedQuery = Uri.EscapeDataString(query);
+            var result = await Http.GetFromJsonAsync<List<MovieItem>>($"api/movies/search?title={encodedQuery}");
+            movies = result ?? new List<MovieItem>();
+        }
+        catch
+        {
+            errorMessage = "Something went wrong while searching.";
+            movies.Clear();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private sealed class MovieItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Genre { get; set; }
+        public string? PosterUrl { get; set; }
+    }
+}

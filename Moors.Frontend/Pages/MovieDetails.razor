@@ -1,0 +1,302 @@
+﻿@page "/movie/{Id:int}"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>@(movie is null ? "Movie | moors" : $"{DisplayTitle(movie.Title)} | moors")</PageTitle>
+
+<div class="movie-page">
+    <header class="movie-header">
+        <div class="movie-header-left">
+            <a href="/" class="logo-link" aria-label="Go to homepage">
+                <img class="cat-logo" src="/images/top-cat-white.png" alt="moors logo" />
+            </a>
+        </div>
+
+        <div class="movie-header-center">
+            <a href="/" class="brand-link">
+                <div class="brand-name">moors</div>
+            </a>
+        </div>
+
+        <div class="movie-header-right"></div>
+    </header>
+
+    <main class="movie-main">
+        <div class="movie-shell">
+            <button type="button" class="back-btn" @onclick="GoBack">← Back</button>
+
+            @if (isLoading)
+            {
+                <div class="state-text">Loading movie...</div>
+            }
+            else if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="state-text">@errorMessage</div>
+            }
+            else if (movie is not null)
+            {
+                <section class="movie-top">
+                    <div class="movie-left-column">
+                        <div class="poster-wrap">
+                            @if (!string.IsNullOrWhiteSpace(movie.PosterUrl))
+                            {
+                                <img class="movie-poster" src="@movie.PosterUrl" alt="@movie.Title poster" />
+                            }
+                            else
+                            {
+                                <img class="movie-poster" src="/images/posters/no-poster.jpg" alt="No poster available" />
+                            }
+                        </div>
+
+                        <button type="button"
+                                class="watched-btn @(hasWatched ? "watched" : "")"
+                                @onclick="ToggleWatched">
+                            @(hasWatched ? "Watched" : "Have watched?")
+                        </button>
+                        <div class="user-rating-block">
+                            <div class="user-rating-label">Rating:</div>
+
+                            <div class="interactive-stars-row">
+                                @for (var starIndex = 0; starIndex < 5; starIndex++)
+                                {
+                                    var fill = GetSingleStarFill(userRating, starIndex);
+                                    var leftValue = starIndex + 0.5;
+                                    var rightValue = starIndex + 1.0;
+
+                                    <div class="interactive-star">
+                                        <span class="star-base">★</span>
+                                        <span class="star-fill" style=@($"width:{fill}%")>★</span>
+
+                                        <button type="button"
+                                                class="star-hitbox left"
+                                                @onclick="@(() => SetUserRating(leftValue))"
+                                                aria-label="@($"{leftValue:0.0}/5")"></button>
+
+                                        <button type="button"
+                                                class="star-hitbox right"
+                                                @onclick="@(() => SetUserRating(rightValue))"
+                                                aria-label="@($"{rightValue:0.0}/5")"></button>
+                                    </div>
+                                }
+
+                                <span class="user-rating-value">
+                                    @(userRating is null ? "0/5" : $"{userRating:0.0}/5")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="movie-right-column">
+                        <h1 class="movie-title">@DisplayTitle(movie.Title)</h1>
+
+                        <div class="movie-meta-line">
+                            @if (!string.IsNullOrWhiteSpace(GetYear(movie.ReleaseDate, movie.Title)))
+                            {
+                                <span>@GetYear(movie.ReleaseDate, movie.Title)</span>
+                                <span class="meta-separator">|</span>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(movie.Genre))
+                            {
+                                <span>@FormatGenres(movie.Genre)</span>
+                                <span class="meta-separator">|</span>
+                            }
+
+                            @if (movie.Runtime is not null)
+                            {
+                                <span>@movie.Runtime min</span>
+                                <span class="meta-separator">|</span>
+                            }
+
+                            <span class="average-rating-group">
+                                <span>@GetAverageRatingText(movie.AverageRating)</span>
+
+                                <span class="display-stars">
+                                    @for (var starIndex = 0; starIndex < 5; starIndex++)
+                                    {
+                                        var fill = GetSingleStarFill(movie.AverageRating, starIndex);
+
+                                        <span class="display-star">
+                                            <span class="star-base">★</span>
+                                            <span class="star-fill" style=@($"width:{fill}%")>★</span>
+                                        </span>
+                                    }
+                                </span>
+                            </span>
+                        </div>
+
+                        <p class="movie-description">
+                            @if (!string.IsNullOrWhiteSpace(movie.Overview))
+                            {
+                                @movie.Overview
+                            }
+                            else
+                            {
+                                <span>No description available yet.</span>
+                            }
+                        </p>
+
+                        <div class="info-line">
+                            <span class="info-label">Region:</span>
+                        </div>
+
+                        <div class="info-line">
+                            <span class="info-label">Available on:</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-divider"></div>
+
+                <section class="reviews-section">
+                    <h2 class="reviews-title">Reviews:</h2>
+
+                    <textarea class="review-box"
+                              placeholder="Write your review here..."
+                              @bind="draftReview"></textarea>
+
+                    @if (reviews.Count == 0)
+                    {
+                        <div class="no-reviews">Be the first to review this movie!</div>
+                    }
+                    else
+                    {
+                        <div class="reviews-list">
+                            @foreach (var review in reviews)
+                            {
+                                <article class="review-card">
+                                    @review
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    </main>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private MovieDetailsDto? movie;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    private bool hasWatched;
+    private double? userRating;
+    private string draftReview = string.Empty;
+
+    private readonly List<string> reviews = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        movie = null;
+
+        try
+        {
+            movie = await Http.GetFromJsonAsync<MovieDetailsDto>($"api/movies/{Id}");
+
+            if (movie is null)
+            {
+                errorMessage = "Movie not found.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Something went wrong while loading this movie.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/search");
+    }
+
+    private void ToggleWatched()
+    {
+        hasWatched = !hasWatched;
+    }
+
+    private void SetUserRating(double rating)
+    {
+        userRating = Math.Clamp(rating, 0.5, 5.0);
+        hasWatched = true;
+    }
+
+    private static string DisplayTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return string.Empty;
+
+        var index = title.LastIndexOf(" (", StringComparison.Ordinal);
+
+        if (index > 0 && title.EndsWith(")"))
+            return title[..index];
+
+        return title;
+    }
+
+    private static string GetYear(string? releaseDate, string title)
+    {
+        if (!string.IsNullOrWhiteSpace(releaseDate) && releaseDate.Length >= 4)
+            return releaseDate[..4];
+
+        var index = title.LastIndexOf(" (", StringComparison.Ordinal);
+        if (index > 0 && title.EndsWith(")"))
+            return title[(index + 2)..^1];
+
+        return string.Empty;
+    }
+
+    private static string FormatGenres(string? genre)
+    {
+        if (string.IsNullOrWhiteSpace(genre))
+            return string.Empty;
+
+        return string.Join(", ",
+            genre.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    private static string GetAverageRatingText(double? averageRating)
+    {
+        if (averageRating is null || averageRating <= 0)
+            return "0.0";
+
+        return averageRating.Value.ToString("0.0");
+    }
+
+    private static double GetSingleStarFill(double? rating, int zeroBasedStarIndex)
+    {
+        var value = Math.Clamp(rating ?? 0, 0, 5);
+        var relative = value - zeroBasedStarIndex;
+
+        if (relative >= 1)
+            return 100;
+
+        if (relative <= 0)
+            return 0;
+
+        return relative * 100;
+    }
+
+    private sealed class MovieDetailsDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Genre { get; set; }
+        public string? PosterUrl { get; set; }
+        public string? Overview { get; set; }
+        public string? ReleaseDate { get; set; }
+        public int? Runtime { get; set; }
+
+        public double? AverageRating { get; set; }
+    }
+}

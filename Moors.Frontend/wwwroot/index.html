@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moors.Frontend</title>
+    <base href="/" />
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/jpg" href="favicon.jpg" />
+    <link href="Moors.Frontend.styles.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.jpg" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.jpg" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="boot-screen">
+            <div class="boot-loader-shell">
+                <div class="moors-loader" aria-label="Loading moors">
+                    <div class="loader-track"></div>
+                    <div class="loader-progress"></div>
+                    <div class="loader-core"></div>
+                </div>
+
+                <div class="boot-percent">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function syncBootProgress() {
+            const root = document.documentElement;
+
+            function tick() {
+                const raw = getComputedStyle(root)
+                    .getPropertyValue('--blazor-load-percentage')
+                    .trim();
+
+                const percent = raw || '0%';
+                root.style.setProperty('--boot-progress', percent);
+
+                const textRaw = getComputedStyle(root)
+                    .getPropertyValue('--blazor-load-percentage-text')
+                    .trim()
+                    .replace(/["']/g, '');
+
+                const percentEl = document.querySelector('.boot-percent');
+                if (percentEl) {
+                    percentEl.textContent = textRaw || percent;
+                }
+
+                if (document.querySelector('.boot-screen')) {
+                    requestAnimationFrame(tick);
+                }
+            }
+
+            requestAnimationFrame(tick);
+        })();
+    </script>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+</body>
+
+</html>
