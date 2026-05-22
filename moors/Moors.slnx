@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Moors.Frontend/Moors.Frontend.csproj" />
+  <Project Path="Moors/Moors.csproj" />
+</Solution>
